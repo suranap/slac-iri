@@ -1,0 +1,98 @@
+
+name: slurm
+
+x-service-templates:
+  x-compute-node: &compute-node
+    image: slurm-docker-cluster:${IMAGE_TAG:-21.08}
+    command: [ "slurmd" ]
+    volumes:
+      - etc_munge:/etc/munge
+      - etc_slurm:/etc/slurm
+      - slurm_jobdir:/data
+      - var_log_slurm:/var/log/slurm
+    expose:
+      - "6818"
+    depends_on:
+      - "slurmctld"
+
+
+services:
+  mysql:
+    image: mariadb:10.10
+    hostname: mysql
+    container_name: mysql
+    environment:
+      MYSQL_RANDOM_ROOT_PASSWORD: "yes"
+      MYSQL_DATABASE: slurm_acct_db
+      MYSQL_USER: slurm
+      MYSQL_PASSWORD: password
+    volumes:
+      - var_lib_mysql:/var/lib/mysql
+
+  slurmdbd:
+    image: slurm-docker-cluster:${IMAGE_TAG:-21.08}
+    build:
+      context: .
+      args:
+        SLURM_TAG: ${SLURM_TAG:-slurm-23-02-6-1}
+    command: [ "slurmdbd" ]
+    container_name: slurmdbd
+    hostname: slurmdbd
+    volumes:
+      - etc_munge:/etc/munge
+      - etc_slurm:/etc/slurm
+      - var_log_slurm:/var/log/slurm
+    expose:
+      - "6819"
+    depends_on:
+      - mysql
+
+  slurmctld:
+    image: slurm-docker-cluster:${IMAGE_TAG:-21.08}
+    command: [ "slurmctld" ]
+    container_name: slurmctld
+    hostname: slurmctld
+    volumes:
+      - etc_munge:/etc/munge
+      - etc_slurm:/etc/slurm
+      - slurm_jobdir:/data
+      - var_log_slurm:/var/log/slurm
+    expose:
+      - "6817"
+    depends_on:
+      - "slurmdbd"
+
+  c1:
+    <<: *compute-node
+    hostname: c1
+    container_name: c1
+
+  c2:
+    <<: *compute-node
+    hostname: c2
+    container_name: c2
+      
+  slurmrestd:
+    image: slurm-docker-cluster:${IMAGE_TAG:-21.08}
+    command: [ "slurmrestd" ]
+    hostname: slurmrestd
+    container_name: slurmrestd
+    volumes:
+      - etc_munge:/etc/munge
+      - etc_slurm:/etc/slurm
+      - slurm_jobdir:/data
+      - var_log_slurm:/var/log/slurm
+    expose:
+      - "9200"
+    ports:
+      - 9200:9200
+    depends_on:
+      - "slurmctld"
+
+
+volumes:
+  etc_munge:
+  etc_slurm:
+  slurm_jobdir:
+  var_lib_mysql:
+  var_log_slurm:
