@@ -88,6 +88,9 @@ services:
       - 9200:9200
     depends_on:
       - "slurmctld"
+    networks:
+      - default
+      - iri-shared
 
 
 volumes:
@@ -96,3 +99,8 @@ volumes:
   slurm_jobdir:
   var_lib_mysql:
   var_log_slurm:
+
+
+networks:
+  iri-shared:
+    external: true

@@ -7,6 +7,9 @@ services:
   rucio:
     ports:
       - "10443:443"
+    networks:
+      - default
+      - iri-shared
   ruciodb:
     platform: !reset null
 
@@ -56,3 +59,6 @@ services:
     platform: !reset null
 
   
+networks:
+  iri-shared:
+    external: true
