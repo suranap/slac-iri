@@ -1,0 +1,32 @@
+
+name: psijd
+
+services:
+  psijd:
+    image: psijd
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: psijd
+    hostname: psijd
+    expose:
+      - "5000"
+    ports:
+      - 10050:5000
+    networks:
+      - iri-shared
+    environment:
+      - SLURM_JWT=$SLURM_JWT
+    volumes:
+      - ./:/opt/psijd
+    working_dir: /opt
+#    command: tail -f /dev/null
+    command: fastapi dev --host 0.0.0.0 --port 5000 /opt/psijd/service/app.py
+
+# TODO: The last commands in this service are intended for local development.
+
+networks:
+  iri-shared:
+    external: true
+
+

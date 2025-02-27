@@ -1,0 +1,64 @@
+
+version: !reset null
+
+name: rucio
+
+services:
+  rucio:
+    ports:
+      - "10443:443"
+    networks:
+      - default
+      - iri-shared
+  ruciodb:
+    platform: !reset null
+
+  graphite:
+    platform: !reset null
+
+  influxdb:
+    platform: !reset null
+
+  elasticsearch:
+    platform: !reset null
+
+  postgres14:
+    platform: !reset null
+
+  mysql8:
+    platform: !reset null
+
+  ftsdb:
+    platform: !reset null
+
+  minio:
+    platform: !reset null
+
+  mongo:
+    platform: !reset null
+
+  mongo-noauth:
+    platform: !reset null
+
+  postgres:
+    platform: !reset null
+
+  kibana:
+    platform: !reset null
+
+  grafana:
+    platform: !reset null
+
+  iam-db:
+    platform: !reset null
+
+  indigoiam:
+    platform: !reset null
+
+  keycloak:
+    platform: !reset null
+
+  
+networks:
+  iri-shared:
+    external: true
