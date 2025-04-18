@@ -1,6 +1,6 @@
 FROM python:3.12-slim
 
-RUN apt update && apt install 
+RUN apt update && apt install curl procps -y
 WORKDIR /app
 RUN pip install --upgrade pip
 COPY . /app/psijd

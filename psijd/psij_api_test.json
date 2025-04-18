@@ -1,0 +1,17 @@
+{
+        "name": "test",
+        "executable": "/usr/bin/sleep",
+        "arguments": ["60"],
+        "resources": {
+            "node_count": "1",
+            "process_count": 1
+        },
+        "directory": "/root",
+        "stdin_path": "/dev/null",
+        "stdout_path": "/root/test.out",
+        "stderr_path": "/root/test_error.out",
+        "environment": {
+            "PATH": "/bin:/usr/bin/:/usr/local/bin/",
+            "LD_LIBRARY_PATH": "/lib/:/lib64/:/usr/local/lib"
+        }
+}

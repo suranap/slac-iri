@@ -6,3 +6,7 @@ docker compose --file rucio/etc/docker/dev/docker-compose.yml --file rucio-compo
 # Stop the Slurm service
 docker compose --file slurm/docker-compose.yml down -v 
 
+# Stop the PSI/J service
+docker compose --file psijd/docker-compose.yml down -v
+
+

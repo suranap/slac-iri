@@ -3,6 +3,8 @@ name: psijd
 
 services:
   psijd:
+    profiles:
+      - default
     image: psijd
     build:
       context: .
@@ -20,10 +22,17 @@ services:
     volumes:
       - ./:/opt/psijd
     working_dir: /opt
-#    command: tail -f /dev/null
     command: fastapi dev --host 0.0.0.0 --port 5000 /opt/psijd/service/app.py
 
-# TODO: The last commands in this service are intended for local development.
+  psijd-debug:
+    profiles: 
+      - debug
+    extends: psijd
+    expose:
+      - "5678"
+    ports:
+      - 5678:5678
+    command: python -Xfrozen_modules=off -m debugpy --listen 0.0.0.0:5678 -m uvicorn psijd.service.app:app --host 0.0.0.0 --port 5000 --reload
 
 networks:
   iri-shared:

@@ -1,64 +1,101 @@
-import asyncio
-from typing import Optional, Dict, Any
-from psij import Job, JobExecutor, JobStatus, JobState, JobSpec, JobStatusCallback
-import slurmrestd_client
-from slurmrestd_client.rest import ApiException
+from typing import Optional
+from psij import Job, JobExecutor, JobExecutorConfig, JobStatus, JobState, JobSpec, ResourceSpec
+from slurmrestd_client.exceptions import ApiException
+from slurmrestd_client.api_client import ApiClient
 from slurmrestd_client.api.slurm_api import SlurmApi
+from slurmrestd_client.configuration import Configuration
+from slurmrestd_client.models.slurm_v0041_post_job_submit_request import SlurmV0041PostJobSubmitRequest
+from slurmrestd_client.models.slurm_v0041_post_job_submit_request_job import SlurmV0041PostJobSubmitRequestJob
+from slurmrestd_client.models.slurm_v0041_post_job_submit_request_jobs_inner_time_limit import SlurmV0041PostJobSubmitRequestJobsInnerTimeLimit
+import logging
+
+logger = logging.getLogger(__name__)
+
+class SlurmRestAPIExecutorConfig(JobExecutorConfig):
+    """Configuration for the Slurm REST API executor
+    
+       Note: See slurmrestd_client.Configuration for more configuration options
+    """
+    def __init__(self, token: str = '', verify_ssl: bool = True):
+        super().__init__()
+        self.token = token
+        self.verify_ssl = verify_ssl
+
 
 class SlurmRestAPIExecutor(JobExecutor):
-    def __init__(self, base_url: str, token: str, verify_ssl: bool = True):
-        super().__init__()
+    _NAME_ = "Slurm REST API Executor"
+    _VERSION_ = "0.0.1"
+    _DESCRIPTION_ = "Configuration for the Slurm REST API executor"
+    
+    def __init__(self, url: Optional[str] = None,
+                 config: Optional[SlurmRestAPIExecutorConfig] = None):
+        super().__init__(url=url, config=config)
+        config = config if config else SlurmRestAPIExecutorConfig()
         # Configure API client
-        configuration = slurmrestd_client.Configuration(
-            host=base_url,
-            verify_ssl=verify_ssl
-        )
-        configuration.api_key['token'] = token
+        configuration = Configuration(host=url)
+        configuration.verify_ssl = config.verify_ssl
+        configuration.api_key['token'] = config.token
         
-        self.api_client = slurmrestd_client.ApiClient(configuration)
+        self.api_client = ApiClient(configuration)
         self.slurm_api = SlurmApi(self.api_client)
+        self.log = logging.getLogger(__name__)
 
     def submit(self, job: Job) -> None:
         """Submit a job to Slurm via REST API"""
-        job_spec: JobSpec = job.spec
+        logger.info(f"Submitting job: {job}")
+        job_spec: JobSpec = job.spec if job.spec else JobSpec() # TODO: What happens is there's no JobSpec?
         
         # Convert PSI/J job spec to Slurm submission request
-        job_properties = {
-            "script": job_spec.script,
-            "nodes": job_spec.resources.get('node_count', 1),
-            "ntasks": job_spec.resources.get('process_count', 1),
-            "time_limit": job_spec.attributes.get('time_limit', '01:00:00'),
-            "current_working_directory": job_spec.directory if job_spec.directory else None,
-            "environment": job_spec.environment if job_spec.environment else None,
-            "name": job_spec.name
-        }
-        
+        total_minutes = int(job_spec.attributes.duration.total_seconds() // 60)
+        node_count = 1
+        if job_spec.resources and isinstance(job_spec.resources, ResourceSpec):
+            node_count = job_spec.resources.node_count 
+
+        job_request = SlurmV0041PostJobSubmitRequest(
+            job=SlurmV0041PostJobSubmitRequestJob(
+                nodes=str(node_count),
+                # ntasks_per_tres=job_spec.resources.process_count,
+                time_limit=SlurmV0041PostJobSubmitRequestJobsInnerTimeLimit(set=True, number=total_minutes),
+                current_working_directory=str(job_spec.directory) if job_spec.directory else None,
+                environment=[k+'='+v for k,v in job_spec.environment.items()] if job_spec.environment else None,
+                name=job_spec.name,
+                script=job_spec.executable  # TODO: What should script look like? 
+            )
+        )
+        logger.info(f"Submitting job request: {job_request}")
         try:
-            response = self.slurm_api.slurm_v0039_job_submit(json_body=job_properties)
+            # Pass the SLURM_JWT token as a header
+            headers = {'X-SLURM-USER-TOKEN': self.api_client.configuration.api_key['token'],
+                       'X-SLURM-USER-NAME': 'root'}
+            response = self.slurm_api.slurm_v0041_post_job_submit(slurm_v0041_post_job_submit_request=job_request, _headers=headers)
+            self.log.info(f"Job submitted: {response.job_id}")
             job._native_id = str(response.job_id)
             job.status = JobStatus(JobState.QUEUED)
         except ApiException as e:
+            logger.error(f"Failed to submit job: {str(e)}")
             raise Exception(f"Failed to submit job: {str(e)}")
 
     def cancel(self, job: Job) -> None:
         """Cancel a running job"""
         if job.native_id:
             try:
-                self.slurm_api.slurm_v0039_cancel_job(job_id=job.native_id)
+                # Pass the SLURM_JWT token as a header
+                headers = {'X-SLURM-USER-TOKEN': self.api_client.configuration.api_key['token'],
+                           'X-SLURM-USER-NAME': 'root'}
+                self.slurm_api.slurm_v0040_delete_job(job.native_id, _headers=headers)
+                # TODO: Should check this response to make sure it was canceled
                 job.status = JobStatus(JobState.CANCELED)
             except ApiException as e:
                 raise Exception(f"Failed to cancel job {job.native_id}: {str(e)}")
 
-    def list_jobs(self) -> list[Job]:
+    def list(self) -> list[str]:
         """List all jobs in the system"""
         try:
-            response = self.slurm_api.slurm_v0039_jobs_get()
+            response = self.slurm_api.slurm_v0040_get_jobs()
             jobs = []
-            for job_data in response.jobs:
-                job = Job()
-                job._native_id = str(job_data.job_id)
-                job.status = JobStatus(self._map_slurm_state_to_psij(job_data.job_state))
-                jobs.append(job)
+            for job_info in response.jobs:
+                jobs.append(str(job_info.job_id))
+                logging.info(f"Listing job {job_info.job_id}: {str(job_info)}")
             return jobs
         except ApiException as e:
             raise Exception(f"Failed to list jobs: {str(e)}")
@@ -67,24 +104,27 @@ class SlurmRestAPIExecutor(JobExecutor):
         """Update the status of a job"""
         if job.native_id:
             try:
-                response = self.slurm_api.slurm_v0039_job_get(job_id=job.native_id)
-                if response and hasattr(response, 'jobs') and response.jobs:
+                response = self.slurm_api.slurm_v0040_get_job(job.native_id)
+                if response and hasattr(response, 'jobs') and len(response.jobs) > 0:
                     job_info = response.jobs[0]  # Get the first job from the response
-                    job_state = self._map_slurm_state_to_psij(job_info.job_state)
-                    details = {
-                        "exit_code": job_info.exit_code if hasattr(job_info, 'exit_code') else None,
-                        "start_time": job_info.start_time if hasattr(job_info, 'start_time') else None,
-                        "end_time": job_info.end_time if hasattr(job_info, 'end_time') else None
-                    }
-                    job.status = JobStatus(job_state, details=details)
+                    state = job_info.job_state or ''
+                    job_state = self._map_slurm_state_to_psij(state[0]) # TODO: It's a list, why would there be more than one state?
+                    # details = {
+                    #     "exit_code": job_info.exit_code if hasattr(job_info, 'exit_code') else None,
+                    #     "start_time": job_info.start_time if hasattr(job_info, 'start_time') else None,
+                    #     "end_time": job_info.end_time if hasattr(job_info, 'end_time') else None
+                    # }
+                    job.status = JobStatus(job_state)
             except ApiException as e:
-                raise Exception(f"Failed to get job status for {job.native_id}: {str(e)}")
+                raise Exception(f"Failed to get job status for job {job.native_id}: {str(e)}")
 
     def _map_slurm_state_to_psij(self, slurm_state: str) -> JobState:
         """Map Slurm job states to PSI/J job states"""
+        # TODO: Move this map outside the function. 
+        # NEW, QUEUED, ACTIVE, COMPLETED, FAILED, and CANCELED.
         mapping = {
             'PENDING': JobState.QUEUED,
-            'CONFIGURING': JobState.QUEUED,
+            'CONFIGURING': JobState.NEW,
             'RUNNING': JobState.ACTIVE,
             'COMPLETED': JobState.COMPLETED,
             'CANCELLED': JobState.CANCELED,
@@ -92,21 +132,15 @@ class SlurmRestAPIExecutor(JobExecutor):
             'TIMEOUT': JobState.FAILED,
             'PREEMPTED': JobState.FAILED,
             'NODE_FAIL': JobState.FAILED,
-            'SUSPENDED': JobState.SUSPENDED
+            'SUSPENDED': JobState.CANCELED
         }
-        return mapping.get(slurm_state.upper(), JobState.UNKNOWN)
+        ret = mapping.get(slurm_state.upper(), None)
+        if not ret:
+            raise Exception(f"Invalid job status code: {slurm_state}")
+        return ret 
 
     def attach(self, job: Job, native_id: str) -> None:
         """Attach to an existing job"""
         job._native_id = native_id
         self._update_job_status(job)
 
-    def get_status(self, job: Job) -> JobStatus:
-        """Get the current status of a job"""
-        self._update_job_status(job)
-        return job.status
-
-    def __del__(self):
-        """Cleanup when the executor is destroyed"""
-        if hasattr(self, 'api_client'):
-            self.api_client.close()

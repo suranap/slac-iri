@@ -20,3 +20,14 @@ curl -k -vvvv -H X-SLURM-USER-TOKEN:${SLURM_JWT} -H X-SLURM-USER-NAME:root -X GE
 ```
 ./stop.sh
 ```
+
+## REST API for PSI
+
+POST job/submit {job details}  start a job
+DELETE job/jobid  -- cancel a job
+GET job/jobid     -- get job status or info
+GET jobs          -- get list of all job ids for this user
+
+The way the JobExecutor works is more procedural. You have to attach
+to a job, which makes a call to get all the current info. Then you can
+do some operations.
