@@ -2,14 +2,21 @@ import slurmrestd_client
 from slurmrestd_client.api import slurm_api
 from slurmrestd_client.configuration import Configuration
 from slurmrestd_client.models import SlurmV0041GetDiag200Response
+from .utils import fetch_slurm_token
 import pytest
 
-@pytest.mark.skip(reason="Skipping test as it requires a valid JWT token")
 def test_slurm_service_active():
+    # Fetch the SLURM JWT token
+    token = fetch_slurm_token()
+    if not token:
+        pytest.skip("SLURM_JWT token not found, skipping test.")
+
     # Configure the client
     configuration = Configuration(
-        host="http://localhost:9200"
-        , debug=True
+        host="http://localhost:9200",
+        access_token=token,
+        username='root',  # TODO: Username should be set in the environment
+        debug=True
     )
     
     # Create an instance of the SlurmApi
@@ -27,4 +34,3 @@ def test_slurm_service_active():
         
     except Exception as e:
         assert False, f"Failed to connect to Slurm REST API: {str(e)}"
-

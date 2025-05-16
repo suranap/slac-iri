@@ -4,4 +4,5 @@ requests
 pytest
 pydantic>=1.8.0
 debugpy
+pyjwt
 ./psijd/executors/psij_slurmrestd/slurmrestd_client-1.0.0-py3-none-any.whl
