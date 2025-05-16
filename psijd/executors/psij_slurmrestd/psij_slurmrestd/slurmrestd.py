@@ -30,11 +30,12 @@ class SlurmRestAPIExecutor(JobExecutor):
     def __init__(self, url: Optional[str] = None,
                  config: Optional[SlurmRestAPIExecutorConfig] = None):
         super().__init__(url=url, config=config)
-        config = config if config else SlurmRestAPIExecutorConfig()
+        self.config = config if config else SlurmRestAPIExecutorConfig() # Store config
         # Configure API client
         configuration = Configuration(host=url)
-        configuration.verify_ssl = config.verify_ssl
-        configuration.api_key['token'] = config.token
+        configuration.verify_ssl = self.config.verify_ssl
+        # The token from config is used to initialize the API client's default token
+        configuration.api_key['token'] = self.config.token
         
         self.api_client = ApiClient(configuration)
         self.slurm_api = SlurmApi(self.api_client)
@@ -65,8 +66,8 @@ class SlurmRestAPIExecutor(JobExecutor):
         logger.info(f"Submitting job request: {job_request}")
         try:
             # Pass the SLURM_JWT token as a header
-            headers = {'X-SLURM-USER-TOKEN': self.api_client.configuration.api_key['token'],
-                       'X-SLURM-USER-NAME': 'root'}
+            headers = {'X-SLURM-USER-TOKEN': self.config.token,
+                       'X-SLURM-USER-NAME': 'root'} # TODO: Consider making username configurable
             response = self.slurm_api.slurm_v0041_post_job_submit(slurm_v0041_post_job_submit_request=job_request, _headers=headers)
             self.log.info(f"Job submitted: {response.job_id}")
             job._native_id = str(response.job_id)
@@ -80,8 +81,8 @@ class SlurmRestAPIExecutor(JobExecutor):
         if job.native_id:
             try:
                 # Pass the SLURM_JWT token as a header
-                headers = {'X-SLURM-USER-TOKEN': self.api_client.configuration.api_key['token'],
-                           'X-SLURM-USER-NAME': 'root'}
+                headers = {'X-SLURM-USER-TOKEN': self.config.token,
+                           'X-SLURM-USER-NAME': 'root'} # TODO: Consider making username configurable
                 self.slurm_api.slurm_v0040_delete_job(job.native_id, _headers=headers)
                 # TODO: Should check this response to make sure it was canceled
                 job.status = JobStatus(JobState.CANCELED)
@@ -91,7 +92,9 @@ class SlurmRestAPIExecutor(JobExecutor):
     def list(self) -> list[str]:
         """List all jobs in the system"""
         try:
-            response = self.slurm_api.slurm_v0040_get_jobs()
+            headers = {'X-SLURM-USER-TOKEN': self.config.token,
+                       'X-SLURM-USER-NAME': 'root'} # TODO: Consider making username configurable
+            response = self.slurm_api.slurm_v0040_get_jobs(_headers=headers)
             jobs = []
             for job_info in response.jobs:
                 jobs.append(str(job_info.job_id))
@@ -104,20 +107,25 @@ class SlurmRestAPIExecutor(JobExecutor):
         """Update the status of a job"""
         if job.native_id:
             try:
-                response = self.slurm_api.slurm_v0040_get_job(job.native_id)
+                headers = {'X-SLURM-USER-TOKEN': self.config.token,
+                           'X-SLURM-USER-NAME': 'root'} # TODO: Consider making username configurable
+                response = self.slurm_api.slurm_v0040_get_job(job.native_id, _headers=headers)
                 if response and hasattr(response, 'jobs') and len(response.jobs) > 0:
                     job_info = response.jobs[0]  # Get the first job from the response
                     state = job_info.job_state or ''
-                    job_state = self._map_slurm_state_to_psij(state[0]) # TODO: It's a list, why would there be more than one state?
-                    # details = {
-                    #     "exit_code": job_info.exit_code if hasattr(job_info, 'exit_code') else None,
-                    #     "start_time": job_info.start_time if hasattr(job_info, 'start_time') else None,
-                    #     "end_time": job_info.end_time if hasattr(job_info, 'end_time') else None
-                    # }
-                    job.status = JobStatus(job_state)
+                    if state: # Ensure state is not empty
+                        # Slurm job_state can be a list of state strings, usually the first one is the primary.
+                        # Example: ["PENDING", "JOB_ARRAY_TASK_LIMIT"]
+                        # We take the first state for mapping.
+                        primary_slurm_state = state[0] if isinstance(state, list) and state else state if isinstance(state, str) else ''
+                        job_state = self._map_slurm_state_to_psij(primary_slurm_state)
+                        job.status = JobStatus(job_state)
+                    else:
+                        # If state is empty or not parsable, log and potentially set to a default/unknown state
+                        logger.warning(f"Received empty or unparsable state for job {job.native_id}: {job_info.job_state}")
+                        # Or, re-raise or handle as an error if appropriate
             except ApiException as e:
                 raise Exception(f"Failed to get job status for job {job.native_id}: {str(e)}")
-
     def _map_slurm_state_to_psij(self, slurm_state: str) -> JobState:
         """Map Slurm job states to PSI/J job states"""
         # TODO: Move this map outside the function. 
@@ -139,8 +147,7 @@ class SlurmRestAPIExecutor(JobExecutor):
             raise Exception(f"Invalid job status code: {slurm_state}")
         return ret 
 
-    def attach(self, job: Job, native_id: str) -> None:
+    def attach(self, job: Job, native_id: str) -> None: # Signature matches JobExecutor
         """Attach to an existing job"""
         job._native_id = native_id
         self._update_job_status(job)
-
