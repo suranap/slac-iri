@@ -5,8 +5,14 @@
 	"dockerComposeFile": [
 		"../docker-compose.yml"
 	],
-	"service": "psijd",
-	"workspaceFolder": "/workspace/psijd",
+	"service": "psijd-debug",
+
+	// IMPORTANT: mount the parent of your psijd folder (where .git lives) into /opt
+	"mounts": [
+		"source=${localWorkspaceFolder}/..,target=/opt,type=bind,consistency=cached"
+	],
+	// keep your workspace pointed at the psijd sub-folder
+	"workspaceFolder": "/opt/psijd",
 
 	// Features to add to the dev container. More info: https://containers.dev/features.
 	"features": {
@@ -15,7 +21,7 @@
 
 	// Use 'forwardPorts' to make a list of ports inside the container available locally.
 	"forwardPorts": [
-		5000
+		10050
 	],
 	"customizations": {
 		"vscode": {
@@ -24,10 +30,10 @@
 				"ms-azuretools.vscode-docker"
 			]
 		}
-	}
+	},
 
 	// Use 'postCreateCommand' to run commands after the container is created.
-	// "postCreateCommand": "pip3 install --user -r requirements.txt",
+	"postCreateCommand": "pip install -r requirements.txt"
 
 	// Configure tool-specific properties.
 	// "customizations": {},

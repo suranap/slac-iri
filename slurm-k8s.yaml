@@ -1,0 +1,274 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: slurm-ns
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: slurm-config
+  namespace: slurm-ns
+data:
+  slurm.conf: |-
+    # Add your slurm.conf content here
+    # Example:
+    ClusterName=slurm-cluster
+    SlurmctldHost=slurmctld-0.slurmctld-service.slurm-ns.svc.cluster.local # Adjust based on your StatefulSet and Service names
+    # ... other slurm.conf settings
+  munge.key: |-
+    # Add your munge.key content here (ensure it's the same across all slurm components)
+---
+# MariaDB/MySQL Deployment (or use an external DB)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mariadb-deployment
+  namespace: slurm-ns
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mariadb
+  template:
+    metadata:
+      labels:
+        app: mariadb
+    spec:
+      containers:
+      - name: mariadb
+        image: mariadb:10.10
+        ports:
+        - containerPort: 3306
+        env:
+        - name: MYSQL_RANDOM_ROOT_PASSWORD
+          value: "yes"
+        - name: MYSQL_DATABASE
+          value: "slurm_acct_db"
+        - name: MYSQL_USER
+          value: "slurm"
+        - name: MYSQL_PASSWORD
+          value: "password"
+        volumeMounts:
+        - name: mariadb-storage
+          mountPath: /var/lib/mysql
+      volumes:
+      - name: mariadb-storage
+        emptyDir: {} # For persistent storage, use a PersistentVolumeClaim
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mariadb-service
+  namespace: slurm-ns
+spec:
+  selector:
+    app: mariadb
+  ports:
+  - protocol: TCP
+    port: 3306
+    targetPort: 3306
+---
+# slurmdbd StatefulSet
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: slurmdbd
+  namespace: slurm-ns
+spec:
+  serviceName: "slurmdbd-service"
+  replicas: 1
+  selector:
+    matchLabels:
+      app: slurmdbd
+  template:
+    metadata:
+      labels:
+        app: slurmdbd
+    spec:
+      containers:
+      - name: slurmdbd
+        image: your-registry/slurm-docker-cluster:24.05.4 # <-- IMPORTANT: Replace with your image path
+        command: ["slurmdbd"]
+        ports:
+        - containerPort: 6819
+        volumeMounts:
+        - name: slurm-config-volume
+          mountPath: /etc/slurm/slurm.conf
+          subPath: slurm.conf
+        - name: munge-key-volume
+          mountPath: /etc/munge/munge.key
+          subPath: munge.key
+      volumes:
+      - name: slurm-config-volume
+        configMap:
+          name: slurm-config
+      - name: munge-key-volume
+        configMap:
+          name: slurm-config
+          items:
+          - key: munge.key
+            path: munge.key
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: slurmdbd-service
+  namespace: slurm-ns
+spec:
+  selector:
+    app: slurmdbd
+  ports:
+  - protocol: TCP
+    port: 6819
+    targetPort: 6819
+---
+# slurmctld StatefulSet
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: slurmctld
+  namespace: slurm-ns
+spec:
+  serviceName: "slurmctld-service"
+  replicas: 1
+  selector:
+    matchLabels:
+      app: slurmctld
+  template:
+    metadata:
+      labels:
+        app: slurmctld
+    spec:
+      containers:
+      - name: slurmctld
+        image: your-registry/slurm-docker-cluster:24.05.4 # <-- IMPORTANT: Replace with your image path
+        command: ["slurmctld"]
+        ports:
+        - containerPort: 6817
+        volumeMounts:
+        - name: slurm-config-volume
+          mountPath: /etc/slurm/slurm.conf
+          subPath: slurm.conf
+        - name: munge-key-volume
+          mountPath: /etc/munge/munge.key
+          subPath: munge.key
+      volumes:
+      - name: slurm-config-volume
+        configMap:
+          name: slurm-config
+      - name: munge-key-volume
+        configMap:
+          name: slurm-config
+          items:
+          - key: munge.key
+            path: munge.key
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: slurmctld-service
+  namespace: slurm-ns
+spec:
+  selector:
+    app: slurmctld
+  ports:
+  - protocol: TCP
+    port: 6817
+    targetPort: 6817
+---
+# slurmrestd Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: slurmrestd-deployment
+  namespace: slurm-ns
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: slurmrestd
+  template:
+    metadata:
+      labels:
+        app: slurmrestd
+    spec:
+      containers:
+      - name: slurmrestd
+        image: your-registry/slurm-docker-cluster:24.05.4 # <-- IMPORTANT: Replace with your image path
+        command: ["slurmrestd"]
+        ports:
+        - containerPort: 9200
+        volumeMounts:
+        - name: slurm-config-volume
+          mountPath: /etc/slurm/slurm.conf
+          subPath: slurm.conf
+        - name: munge-key-volume
+          mountPath: /etc/munge/munge.key
+          subPath: munge.key
+      volumes:
+      - name: slurm-config-volume
+        configMap:
+          name: slurm-config
+      - name: munge-key-volume
+        configMap:
+          name: slurm-config
+          items:
+          - key: munge.key
+            path: munge.key
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: slurmrestd-service
+  namespace: slurm-ns
+spec:
+  type: LoadBalancer # Or NodePort
+  selector:
+    app: slurmrestd
+  ports:
+  - protocol: TCP
+    port: 9200
+    targetPort: 9200
+---
+# Example Slurm Compute Node DaemonSet (slurmd)
+# This will run one slurmd pod per Kubernetes node that matches the nodeSelector (if any)
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: slurmd-daemonset
+  namespace: slurm-ns
+spec:
+  selector:
+    matchLabels:
+      app: slurmd
+  template:
+    metadata:
+      labels:
+        app: slurmd
+    spec:
+      # nodeSelector: # Optionally, restrict slurmd to specific k8s nodes
+      #   kubernetes.io/hostname: your-compute-node-label
+      containers:
+      - name: slurmd
+        image: your-registry/slurm-docker-cluster:24.05.4 # <-- IMPORTANT: Replace with your image path
+        command: ["slurmd"]
+        securityContext:
+          privileged: true # slurmd often needs privileged access for cgroup management
+        volumeMounts:
+        - name: slurm-config-volume
+          mountPath: /etc/slurm/slurm.conf
+          subPath: slurm.conf
+        - name: munge-key-volume
+          mountPath: /etc/munge/munge.key
+          subPath: munge.key
+        # Add other necessary volume mounts for slurmd (e.g., /var/spool/slurmd, /sys/fs/cgroup)
+      volumes:
+      - name: slurm-config-volume
+        configMap:
+          name: slurm-config
+      - name: munge-key-volume
+        configMap:
+          name: slurm-config
+          items:
+          - key: munge.key
+            path: munge.key

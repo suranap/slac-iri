@@ -28,6 +28,7 @@ services:
     profiles: 
       - debug
     extends: psijd
+    container_name: psijd-debug
     expose:
       - "5678"
     ports:

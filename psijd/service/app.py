@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)  # Use the name defined in logging.yaml
 app = FastAPI(title='PSI/J Service API', version='0.1')
 
 # Custom 404 Not Found handler
-async def custom_404_handler(request: Request, exc: HTTPException):
+async def custom_404_handler(request: Request, exc: Exception):
     """Custom handler for 404 Not Found errors."""
     return JSONResponse(
         status_code=404,
