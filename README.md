@@ -31,3 +31,35 @@ GET jobs          -- get list of all job ids for this user
 The way the JobExecutor works is more procedural. You have to attach
 to a job, which makes a call to get all the current info. Then you can
 do some operations.
+
+## Kubernetes Deployment with Helm
+
+The project includes a Helm chart for deploying psijd to Kubernetes.
+
+### Install for Development
+```bash
+helm install psijd-dev ./psijd-helm-chart -f ./psijd-helm-chart/values-dev.yaml
+```
+
+### Install for Production
+```bash
+helm install psijd-prod ./psijd-helm-chart -f ./psijd-helm-chart/values-prod.yaml
+```
+
+### Upgrade Deployment
+```bash
+# Development
+helm upgrade psijd-dev ./psijd-helm-chart -f ./psijd-helm-chart/values-dev.yaml
+
+# Production
+helm upgrade psijd-prod ./psijd-helm-chart -f ./psijd-helm-chart/values-prod.yaml
+```
+
+### Uninstall
+```bash
+# Development
+helm uninstall psijd-dev
+
+# Production
+helm uninstall psijd-prod
+```

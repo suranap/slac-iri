@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: psijd-config
+  labels:
+    app: psijd
+
+# Environment variables for the psijd service
+# You can update SLURM_RESTD_URL here without redeploying the container image.
+data:
+  SLURM_RESTD_URL: "http://slurmrestd:9200"
+  # Add other variables as needed, e.g.:
+  # NERSC_PROJECT: "my-project-id"  

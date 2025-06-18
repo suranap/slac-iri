@@ -1,0 +1,44 @@
+replicaCount: 1
+
+image:
+  repository: psijd
+  tag: latest
+  pullPolicy: IfNotPresent
+
+nameOverride: ""
+fullnameOverride: ""
+
+namespace: psijd
+
+service:
+  type: LoadBalancer
+  port: 10050
+  targetPort: 5000
+
+container:
+  command: 
+    - "fastapi"
+    - "dev"
+    - "--host"
+    - "0.0.0.0"
+    - "--port"
+    - "5000"
+    - "/opt/psijd/service/app.py"
+
+config:
+  # SLURM_RESTD_URL is automatically constructed from slurmRestd values below
+  # Add other environment variables here as needed
+
+slurmRestd:
+  # Service discovery options - customize these for your environment
+  serviceName: "slurmrestd"
+  namespace: "default"  # or wherever your slurmrestd service is deployed
+  port: 9200
+
+resources:
+  requests:
+    memory: "128Mi"
+    cpu: "100m"
+  limits:
+    memory: "256Mi"
+    cpu: "500m"

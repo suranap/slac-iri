@@ -1,0 +1,17 @@
+image:
+  repository: scr.svc.stanford.edu/suranap/slac-iri/psijd
+  tag: latest
+  pullPolicy: Always
+
+replicaCount: 2
+
+service:
+  type: LoadBalancer
+
+resources:
+  requests:
+    memory: "256Mi"
+    cpu: "200m"
+  limits:
+    memory: "512Mi"
+    cpu: "1000m"

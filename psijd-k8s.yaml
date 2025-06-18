@@ -1,13 +1,13 @@
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: psijd-ns
+  name: psijd
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: psijd-deployment
-  namespace: psijd-ns
+  namespace: psijd
   labels:
     app: psijd
 spec:
@@ -22,7 +22,7 @@ spec:
     spec:
       containers:
       - name: psijd
-        image: "{{ .Values.image }}"
+        image: psijd:latest
         imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 5000
@@ -40,7 +40,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: psijd-service
-  namespace: psijd-ns
+  namespace: psijd
 spec:
   type: LoadBalancer # Or NodePort, ClusterIP depending on your exposure needs
   selector:

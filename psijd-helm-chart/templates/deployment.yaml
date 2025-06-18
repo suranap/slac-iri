@@ -1,0 +1,33 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "psijd.fullname" . }}
+  namespace: {{ .Values.namespace }}
+  labels:
+    {{- include "psijd.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "psijd.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "psijd.selectorLabels" . | nindent 8 }}
+    spec:
+      containers:
+      - name: {{ .Chart.Name }}
+        image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        ports:
+        - name: http
+          containerPort: {{ .Values.service.targetPort }}
+          protocol: TCP
+        workingDir: /opt
+        command:
+          {{- toYaml .Values.container.command | nindent 10 }}
+        envFrom:
+        - configMapRef:
+            name: {{ include "psijd.fullname" . }}-config
+        resources:
+          {{- toYaml .Values.resources | nindent 10 }}

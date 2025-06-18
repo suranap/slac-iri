@@ -11,7 +11,7 @@ BACKEND_CONFIGS = {
     'slac': {
         'v0.1.0': {
             'class': 'psijd.executors.psij_slurmrestd.psij_slurmrestd.slurmrestd.SlurmRestAPIExecutor',
-            'url': 'http://slurmrestd:9200',
+            'url': os.getenv('SLURM_RESTD_URL', 'http://slurmrestd:9200'),
             'config_class': 'psijd.executors.psij_slurmrestd.psij_slurmrestd.slurmrestd.SlurmRestAPIExecutorConfig',
             'config': {
                 'verify_ssl': False

@@ -1,0 +1,7 @@
+image:
+  repository: psijd
+  tag: latest
+  pullPolicy: IfNotPresent
+
+service:
+  type: NodePort

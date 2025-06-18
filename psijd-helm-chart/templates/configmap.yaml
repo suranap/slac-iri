@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "psijd.fullname" . }}-config
+  namespace: {{ .Values.namespace }}
+  labels:
+    {{- include "psijd.labels" . | nindent 4 }}
+data:
+  SLURM_RESTD_URL: {{ printf "http://%s.%s.svc.cluster.local:%g" .Values.slurmRestd.serviceName .Values.slurmRestd.namespace .Values.slurmRestd.port | quote }}
+  {{- range $key, $value := .Values.config }}
+  {{- if ne $key "SLURM_RESTD_URL" }}
+  {{ $key }}: {{ $value | quote }}
+  {{- end }}
+  {{- end }}
