@@ -31,9 +31,9 @@ config:
 
 slurmRestd:
   # Service discovery options - customize these for your environment
-  serviceName: "slurmrestd"
-  namespace: "default"  # or wherever your slurmrestd service is deployed
-  port: 9200
+  serviceName: "slurm-restapi"
+  namespace: "slurm"  # or wherever your slurmrestd service is deployed
+  port: 6820
 
 resources:
   requests:

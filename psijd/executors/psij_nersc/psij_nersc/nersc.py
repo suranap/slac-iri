@@ -128,7 +128,7 @@ class NERSCExecutor(JobExecutor):
         #     raise Exception(f"Failed to submit job: {str(e)}")
 
     def cancel(self, job: Job, access_token: str) -> None:
-    def cancel(self, job: Job) -> None: # Signature matches JobExecutor
+        """Cancel a job on NERSC"""
         if not job.native_id:
             self.log.error("Attempted to cancel a job without a native_id.")
             raise Exception("Job ID is required for cancellation")

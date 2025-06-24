@@ -41,6 +41,8 @@ for backend, versions in BACKEND_VERSIONS.items():
         
         try:
             # Dynamically import the router module
+            import os; print(os.getcwd())  # Debugging line to check current working directory
+            import sys; print(sys.path)  # Debugging line to check Python path
             module_path = f"psijd.service.routers.{backend}.{module_version}"
             router_module = importlib.import_module(module_path)
             

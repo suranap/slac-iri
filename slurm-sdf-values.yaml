@@ -1,0 +1,90 @@
+# SDF-specific overrides for Slurm Helm chart
+# This file overrides values from slurm-values.yaml for SDF deployment
+
+# Override controller storage class to use SDF home directory storage
+controller:
+  persistence:
+    storageClass: sdf-home
+  # Add resource requirements to satisfy Kyverno policies
+  resources:
+    requests:
+      cpu: 500m
+      memory: 1Gi
+      ephemeral-storage: 1Gi
+    limits:
+      cpu: 1
+      memory: 2Gi
+      ephemeral-storage: 2Gi
+
+# Override MariaDB storage class to use SDF home directory storage  
+mariadb:
+  primary:
+    persistence:
+      storageClass: sdf-home
+    # Add resource requirements to satisfy Kyverno policies
+    resources:
+      requests:
+        cpu: 500m
+        memory: 512Mi
+        ephemeral-storage: 1Gi
+      limits:
+        cpu: 1
+        memory: 1Gi
+        ephemeral-storage: 2Gi
+
+# Add resource requirements for other slurm components
+accounting:
+  resources:
+    requests:
+      cpu: 200m
+      memory: 256Mi
+      ephemeral-storage: 500Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+      ephemeral-storage: 1Gi
+
+restapi:
+  resources:
+    requests:
+      cpu: 200m
+      memory: 256Mi
+      ephemeral-storage: 500Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+      ephemeral-storage: 1Gi
+
+compute:
+  nodesets:
+    - name: debug
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+          ephemeral-storage: 500Mi
+        limits:
+          cpu: 2
+          memory: 4Gi
+          ephemeral-storage: 2Gi
+
+authcred:
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+      ephemeral-storage: 500Mi
+    limits:
+      cpu: 200m
+      memory: 256Mi
+      ephemeral-storage: 1Gi
+
+# Limit prometheus monitoring to only YOUR Slurm pods (not SLAC infrastructure)
+slurm-exporter:
+  # Disable node-exporter entirely - only monitor slurm application metrics
+  enabled: false
+  
+  # If you do need node metrics, limit to only nodes with your slurm pods
+  nodeSelector:
+    # This will only run on nodes that actually have your slurm pods scheduled
+    kubernetes.io/hostname: "" # Will be set dynamically based on where slurm pods land

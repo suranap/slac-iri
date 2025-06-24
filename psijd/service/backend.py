@@ -20,9 +20,9 @@ BACKEND_CONFIGS = {
     },
     'nersc': {
         'v0.1.0': {
-            'class': 'psijd.executors.psij_nersc.nersc.NERSCExecutor',
+            'class': 'psijd.executors.psij_nersc.psij_nersc.nersc.NERSCExecutor',
             'url': 'https://api.nersc.gov/v1',
-            'config_class': 'psijd.executors.psij_nersc.nersc.NERSCExecutorConfig',
+            'config_class': 'psijd.executors.psij_nersc.psij_nersc.nersc.NERSCExecutorConfig',
             'config': {
                 'project': os.getenv('NERSC_PROJECT', '')
             }

@@ -14,7 +14,7 @@ echo "Installing cert-manager..."
 helm install cert-manager jetstack/cert-manager --namespace cert-manager --create-namespace --set crds.enabled=true
 
 echo "Installing prometheus..."
-helm install prometheus prometheus-community/kube-prometheus-stack --namespace prometheus --create-namespace --set installCRDs=true
+helm install prometheus prometheus-community/kube-prometheus-stack --namespace prometheus --create-namespace --set installCRDs=true --values=prometheus-values.yaml
 
 echo "Installing Slinky operator..."
 if [ ! -f slinky-values.yaml ]; then

@@ -1,43 +1,63 @@
 // For format details, see https://aka.ms/devcontainer.json. For config options, see the
 // README at: https://github.com/devcontainers/templates/tree/main/src/python
 {
-	"name": "PSI/J Service",
-	"dockerComposeFile": [
-		"../docker-compose.yml"
-	],
-	"service": "psijd-debug",
-
-	// IMPORTANT: mount the parent of your psijd folder (where .git lives) into /opt
-	"mounts": [
-		"source=${localWorkspaceFolder}/..,target=/opt,type=bind,consistency=cached"
-	],
-	// keep your workspace pointed at the psijd sub-folder
-	"workspaceFolder": "/opt/psijd",
+	"name": "PSI/J Service - Kubernetes Dev",
+	// devcontainer.json
+	"build": {
+	  "dockerfile": "../Dockerfile",
+	  "context": ".."
+	},
 
 	// Features to add to the dev container. More info: https://containers.dev/features.
 	"features": {
-		"ghcr.io/devcontainers/features/git:1": {}
+		"ghcr.io/devcontainers/features/common-utils:2": {
+			"installZsh": true,
+			"username": "vscode",
+			"uid": "1000",
+			"gid": "1000"
+		},
+		"ghcr.io/devcontainers/features/git:1": {},
+		"ghcr.io/devcontainers/features/docker-in-docker:2": {},
+		"ghcr.io/devcontainers/features/node:1": {
+			"nodeGypDependencies": true,
+			"version": "lts"
+		},
+		"ghcr.io/rocker-org/devcontainer-features/apt-packages:1": {
+        	"packages": "curl,procps"
+    	},
+		"ghcr.io/devcontainers-extra/features/ripgrep:1": {}
 	},
+	"remoteUser": "vscode",
+
+	// Mount the workspace and Docker socket
+	// "mounts": [
+	// 	"source=${localWorkspaceFolder}/..,target=/opt,type=bind,consistency=cached",
+	// 	"source=/var/run/docker.sock,target=/var/run/docker.sock,type=bind"
+	// ],
+	// "workspaceFolder": "/opt/psijd",
 
 	// Use 'forwardPorts' to make a list of ports inside the container available locally.
 	"forwardPorts": [
-		10050
+		5000
 	],
+	// Configure tool-specific properties.
 	"customizations": {
 		"vscode": {
 			"extensions": [
 				"ms-python.python",
-				"ms-azuretools.vscode-docker"
+				"ms-vscode.vscode-json",
+				"ms-vscode.vscode-typescript-next"
 			]
 		}
 	},
 
+	"containerEnv": {
+		// "SLURM_RESTD_URL": "http://slurm-restapi.slurm"
+		"SLURM_RESTD_URL": "http://localhost:8000"
+	},
+
 	// Use 'postCreateCommand' to run commands after the container is created.
-	"postCreateCommand": "pip install -r requirements.txt"
-
-	// Configure tool-specific properties.
-	// "customizations": {},
-
-	// Uncomment to connect as root instead. More info: https://aka.ms/dev-containers-non-root.
-	// "remoteUser": "root"
+	// devcontainer.json
+	"workspaceFolder": "/workspaces/slac-iri",
+	"postStartCommand": "fastapi dev --host 0.0.0.0 --port 5000 psijd/service/app.py"
 }

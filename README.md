@@ -46,6 +46,13 @@ helm install psijd-dev ./psijd-helm-chart -f ./psijd-helm-chart/values-dev.yaml
 helm install psijd-prod ./psijd-helm-chart -f ./psijd-helm-chart/values-prod.yaml
 ```
 
+### Test endpoints 
+
+```bash
+kubectl port-forward service/psijd-dev 10050:10050 -n psijd &
+curl -H "X-SLURM-USER-TOKEN: auth/none" http://localhost:10050/slurm/v0.0.40/ping
+```
+
 ### Upgrade Deployment
 ```bash
 # Development
