@@ -46,18 +46,17 @@
 			"extensions": [
 				"ms-python.python",
 				"ms-vscode.vscode-json",
-				"ms-vscode.vscode-typescript-next"
+				"ms-vscode.vscode-typescript-next",
+				"ms-azuretools.vscode-docker"
 			]
 		}
 	},
 
+	"workspaceFolder": "/workspaces/slac-iri",
+
 	"containerEnv": {
 		// "SLURM_RESTD_URL": "http://slurm-restapi.slurm"
-		"SLURM_RESTD_URL": "http://localhost:8000"
-	},
-
-	// Use 'postCreateCommand' to run commands after the container is created.
-	// devcontainer.json
-	"workspaceFolder": "/workspaces/slac-iri",
-	"postStartCommand": "fastapi dev --host 0.0.0.0 --port 5000 psijd/service/app.py"
+		"SLURM_RESTD_URL": "http://host.docker.internal:6820",
+		"PYTHONPATH": "${localWorkspaceFolder}"
+	}
 }

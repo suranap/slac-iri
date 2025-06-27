@@ -10,7 +10,7 @@ handlers:
     stream: ext://sys.stdout
   file:
     class: logging.FileHandler
-    level: DEBUG
+    level: INFO
     formatter: simple
     filename: app.log
 loggers:
@@ -19,5 +19,5 @@ loggers:
     handlers: [console, file]
     propagate: no
 root:
-  level: WARNING
+  level: INFO
   handlers: [console]

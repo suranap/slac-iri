@@ -94,9 +94,9 @@ async def list_jobs(
 @router.get("/health", response_model=dict)
 async def health_check():
     """Health check for the NERSC backend (v0.1.0)"""
-    # For health check, instantiate executor without a specific user token
-    executor = get_executor(BACKEND, VERSION, access_token=None)
     try:
+        # For health check, instantiate executor without a specific user token
+        executor = get_executor(BACKEND, VERSION, access_token=None)
         return {
             "status": "healthy",
             "backend": BACKEND,
@@ -105,4 +105,5 @@ async def health_check():
             "executor_version": executor._VERSION_
         }
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error(f"Health check for {BACKEND} {VERSION} failed: {str(e)}")
+        raise HTTPException(status_code=503, detail="Service Unavailable")

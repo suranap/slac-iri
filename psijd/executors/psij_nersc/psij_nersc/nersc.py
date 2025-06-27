@@ -127,7 +127,7 @@ class NERSCExecutor(JobExecutor):
         #         self.log.error(f"Response: {e.response.text}")
         #     raise Exception(f"Failed to submit job: {str(e)}")
 
-    def cancel(self, job: Job, access_token: str) -> None:
+    def cancel(self, job: Job) -> None:
         """Cancel a job on NERSC"""
         if not job.native_id:
             self.log.error("Attempted to cancel a job without a native_id.")
@@ -145,7 +145,7 @@ class NERSCExecutor(JobExecutor):
         response.raise_for_status() # Raise HTTPError for bad responses (4xx or 5xx)
         self.log.info(f"Job {job_id} cancellation request sent.")
 
-    def list(self, access_token: str) -> List[str]:
+    def list(self) -> List[str]:
         """List all jobs on NERSC"""
         url = "https://api.nersc.gov/api/v1.2/compute/jobs/perlmutter?index=0&sacct=false&cached=true"
 
