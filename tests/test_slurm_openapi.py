@@ -1,9 +1,10 @@
 import slurmrestd_client
 from slurmrestd_client.api import slurm_api
 from slurmrestd_client.configuration import Configuration
-from slurmrestd_client.models import SlurmV0041GetDiag200Response
+from slurmrestd_client.models.slurm_v0041_get_diag200_response import SlurmV0041GetDiag200Response
 from .utils import fetch_slurm_token
 import pytest
+from slurmrestd_client.api_client import ApiClient
 
 def test_slurm_service_active():
     # Fetch the SLURM JWT token
@@ -20,7 +21,7 @@ def test_slurm_service_active():
     )
     
     # Create an instance of the SlurmApi
-    api_client = slurmrestd_client.ApiClient(configuration)
+    api_client = ApiClient(configuration)
     api_instance = slurm_api.SlurmApi(api_client)
     
     try:

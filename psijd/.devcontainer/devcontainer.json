@@ -38,7 +38,8 @@
 
 	// Use 'forwardPorts' to make a list of ports inside the container available locally.
 	"forwardPorts": [
-		5000
+		5000,
+		8000
 	],
 	// Configure tool-specific properties.
 	"customizations": {
@@ -47,16 +48,28 @@
 				"ms-python.python",
 				"ms-vscode.vscode-json",
 				"ms-vscode.vscode-typescript-next",
-				"ms-azuretools.vscode-docker"
+				"ms-azuretools.vscode-docker",
+				"1Password.op-vscode"
 			]
 		}
 	},
 
-	"workspaceFolder": "/workspaces/slac-iri",
+	"workspaceFolder": "/workspaces/psijd",
+
+	// This command will run after the container is created.
+	// "postCreateCommand": "pip install --user -r requirements.txt",
+	"postCreateCommand": "git config --global credential.helper '!op-cli'",
+	// Use a different command to run in dev mode.
+	"overrideCommand": false,
+
+	// Mount the 1Password socket
+	"mounts": [
+		"source=${env:HOME}/.1password/agent.sock,target=/home/vscode/.1password/agent.sock,type=bind"
+	],
 
 	"containerEnv": {
 		// "SLURM_RESTD_URL": "http://slurm-restapi.slurm"
 		"SLURM_RESTD_URL": "http://host.docker.internal:6820",
-		"PYTHONPATH": "${localWorkspaceFolder}"
+		"PYTHONPATH": "/workspaces/psijd"
 	}
 }

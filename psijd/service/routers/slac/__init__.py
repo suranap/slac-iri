@@ -1,1 +1,1 @@
-# SLAC backend router package
+# Makes psijd.service.routers.slac a package

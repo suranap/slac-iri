@@ -1,1 +1,7 @@
-pytest==8.3.4
+pytest
+fastapi[standard]
+psij-python
+requests
+pyjwt
+sfapi_client
+./psijd/executors/psij_slurmrestd/slurmrestd_client-1.0.0-py3-none-any.whl
