@@ -1,4 +1,0 @@
-[submodule "rucio"]
-	path = rucio
-	url = https://github.com/rucio/rucio.git
-	branch = release-35-LTS
